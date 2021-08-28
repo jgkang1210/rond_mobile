@@ -11,18 +11,45 @@ serial_port = serial.Serial(
     stopbits=serial.STOPBITS_ONE,
 )
 
+def map(x, in_min, in_max, out_min, out_max):
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+def send_zero():
+    serial_port.write(bytes(bytearray([0x2])))
+    serial_port.write(bytes(bytearray([0x0])))
+    serial_port.write(bytes(bytearray([0x0])))
+    serial_port.write(bytes(bytearray([0x3])))
+
+
 def send_packet(center_x, center_y, width, height):
-    # start byte : !
-    # second byte : 0xff
-    # third byte : 0xff
-    # fourth byte : 
-    # end byte : 
+    # start byte : 0x2
+    # second byte : left motor speed
+    # third byte : right motor speed
+    # end byte : 0x3
+
+    left_speed = 30
+    right_speed = 30
+
+    # mapping the value
+    offset = map(center_x, 0, 640, -10, 10)
+
+    # if the object is on the left --> offset < 0
+    # thus, left speed get decrease and right speed increase
+    # thus, left turn
+    left_speed += offset
+    right_speed -= offset
 
     # if the object is too close stop the motor
-    if width > 160 || height > 120:
+    if width > 320 or height > 240:
+        left_speed = 0
+        right_speed = 0
+
+    serial_port.write(bytes(bytearray([0x2])))
+    serial_port.write(bytes(bytearray([hex(left_speed)])))
+    serial_port.write(bytes(bytearray([hex(right_speed)])))
+    serial_port.write(bytes(bytearray([0x3])))
 
 
-    serial_port.write(bytes(bytearray([0x21])))
 
 # 웹캠 신호 받기, 숫자는 컴퓨터에 연결된 영상장비 번호
 # frame size 640 * 480 by setting v4l2 API
@@ -77,7 +104,11 @@ while True:
 
     indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.45, 0.4)
 
+    # no object --> stop the robot
+    if len(boxes) == 0:
+        send_zero()
 
+    # if object is detected
     for i in range(len(boxes)):
         if i in indexes:
             x, y, w, h = boxes[i]
@@ -97,6 +128,8 @@ while True:
                 else:
                     cv2.putText(frame, "Right", (320, 400), cv2.FONT_ITALIC, 1, (0,0,0),1)
 
+                send_packet(center_x, center_y, w, h)
+
                 
 
     cv2.imshow("YOLOv3", frame)
@@ -104,5 +137,7 @@ while True:
     if cv2.waitKey(100) > 0:
         break
 
+# finishing the program
 VideoSignal.release()
 cv2.destroyAllWindows()
+serial_port.close()

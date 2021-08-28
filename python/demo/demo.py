@@ -15,10 +15,10 @@ def map(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 def send_zero():
-    serial_port.write(bytes(bytearray([0x2])))
-    serial_port.write(bytes(bytearray([0x0])))
-    serial_port.write(bytes(bytearray([0x0])))
-    serial_port.write(bytes(bytearray([0x3])))
+    serial_port.write(bytes(bytearray([0x02])))
+    serial_port.write(bytes(bytearray([0x00])))
+    serial_port.write(bytes(bytearray([0x00])))
+    serial_port.write(bytes(bytearray([0x03])))
 
 
 def send_packet(center_x, center_y, width, height):
@@ -36,18 +36,18 @@ def send_packet(center_x, center_y, width, height):
     # if the object is on the left --> offset < 0
     # thus, left speed get decrease and right speed increase
     # thus, left turn
-    left_speed += offset
-    right_speed -= offset
+    left_speed += int(offset)
+    right_speed -= int(offset)
 
     # if the object is too close stop the motor
     if width > 320 or height > 240:
         left_speed = 0
         right_speed = 0
 
-    serial_port.write(bytes(bytearray([0x2])))
-    serial_port.write(bytes(bytearray([hex(left_speed)])))
-    serial_port.write(bytes(bytearray([hex(right_speed)])))
-    serial_port.write(bytes(bytearray([0x3])))
+    serial_port.write(bytes(bytearray([0x02])))
+    serial_port.write(bytes(bytearray([left_speed])))
+    serial_port.write(bytes(bytearray([right_speed])))
+    serial_port.write(bytes(bytearray([0x03])))
 
 
 
